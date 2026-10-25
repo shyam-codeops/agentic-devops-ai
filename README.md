@@ -190,7 +190,7 @@ docker run --rm agentic-devops-ai:latest
 
 **Shyam Singh**
 * GitHub: [@shyam-codeops](https://github.com/shyam-codeops)
-* Role: DevOps & DevSecOps Engineer
+* Role: DevOps Engineer
 
 ---
 
