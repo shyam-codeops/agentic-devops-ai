@@ -3,6 +3,7 @@ Pluggable LLM Provider with OpenAI, Azure OpenAI, and offline Mock fallback.
 """
 
 import json
+import importlib
 from typing import Dict, Any, Optional
 from .config import get_settings
 
@@ -27,26 +28,28 @@ class LLMProvider:
 
     def _call_openai(self, prompt: str, system_prompt: Optional[str]) -> str:
         try:
-            from openai import OpenAI
-            client = OpenAI(api_key=self.settings.openai_api_key)
+            openai_module = importlib.import_module("openai")
+            client = openai_module.OpenAI(api_key=self.settings.openai_api_key)
             messages = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": prompt})
-            
+
             resp = client.chat.completions.create(
                 model=self.settings.model_name,
                 messages=messages,
                 temperature=self.settings.temperature,
             )
             return resp.choices[0].message.content or ""
+        except ImportError:
+            return "OpenAI package is not installed. Please run: pip install openai"
         except Exception as e:
             return f"Error calling OpenAI API: {e}. Falling back to internal engine."
 
     def _call_azure_openai(self, prompt: str, system_prompt: Optional[str]) -> str:
         try:
-            from openai import AzureOpenAI
-            client = AzureOpenAI(
+            openai_module = importlib.import_module("openai")
+            client = openai_module.AzureOpenAI(
                 azure_endpoint=self.settings.azure_openai_endpoint,
                 api_key=self.settings.azure_openai_api_key,
                 api_version="2024-02-15-preview"
@@ -62,6 +65,8 @@ class LLMProvider:
                 temperature=self.settings.temperature,
             )
             return resp.choices[0].message.content or ""
+        except ImportError:
+            return "Azure OpenAI package is not installed. Please run: pip install openai"
         except Exception as e:
             return f"Error calling Azure OpenAI: {e}"
 
@@ -104,27 +109,6 @@ class LLMProvider:
                     "Exit code 137 detected in container status.",
                     "No CPU throttling observed prior to crash."
                 ]
-            })
-            return json.dumps({
-                "actions": [
-                    {
-                        "action_type": "config_patch",
-                        "target_resource": "deployment/payment-service",
-                        "command_preview": "kubectl patch deployment payment-service -n default --patch '{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"payment\",\"resources\":{\"limits\":{\"memory\":\"1Gi\"},\"requests\":{\"memory\":\"512Mi\"}}}]}}}}'",
-                        "is_safe": True,
-                        "requires_approval": False,
-                        "rationale": "Increase memory limit from 512Mi to 1Gi to accommodate peak GC overhead and prevent OOM restarts."
-                    },
-                    {
-                        "action_type": "k8s_restart",
-                        "target_resource": "deployment/payment-service",
-                        "command_preview": "kubectl rollout restart deployment/payment-service -n default",
-                        "is_safe": True,
-                        "requires_approval": False,
-                        "rationale": "Trigger rolling restart of pods with updated resource boundaries."
-                    }
-                ],
-                "rollback_plan": "kubectl rollout undo deployment/payment-service -n default"
             })
         elif "review" in lower or "diff" in lower:
             return json.dumps({
