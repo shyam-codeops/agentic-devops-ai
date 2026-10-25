@@ -1,8 +1,9 @@
-"""
-Unit tests for DevOps Agents.
-"""
-
+import os
+import sys
 import unittest
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from agentic_devops.core.models import Alert, Severity
 from agentic_devops.agents.triage_agent import IncidentTriageAgent
 from agentic_devops.agents.remediation_agent import AutonomousRemediationAgent
