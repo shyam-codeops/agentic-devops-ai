@@ -1,0 +1,33 @@
+name: CI & Agent Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run Unit Tests & Guardrail Verification
+        run: |
+          python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Test CLI Execution
+        run: |
+          python -m agentic_devops.cli triage --service payment-service --severity critical
+          python -m agentic_devops.cli review-pr
+          python -m agentic_devops.cli finops
